@@ -120,7 +120,7 @@ static void flnvm_set_param(struct flnvm *flnvm){
         sprintf(flnvm->disk_name, "flnvm");
 }
 
-static int flnvm_nvm_idendify(struct nvm_dev *ndev , struct nvm_id *id)
+static int flnvm_nvm_identify(struct nvm_dev *ndev , struct nvm_id *id)
 {
         flnvm_hil_identify(ndev->private_data, id);
         return 0;
