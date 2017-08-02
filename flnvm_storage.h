@@ -6,9 +6,14 @@
 
 struct flnvm_storage {
 
-
+        struct flnvm *flnvm;
+        struct flnvm_hil *hil;
 
 };
 
+
+
+int flnvm_storage_setup_storage(struct flnvm_hil *hil);
+int flnvm_storage_cleanup_storage(struct flnvm_hil *hil);
 
 #endif

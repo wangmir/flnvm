@@ -54,6 +54,10 @@ MODULE_PARM_DESC(num_pg, "Number of pages per block");
 static int fpg_sz = 4096;
 module_param(fpg_sz, int, S_IRUGO);
 MODULE_PARM_DESC(fpg_sz, "Size of flash page in byte");
+
+static int is_nullblk = 1;
+module_param(is_nullblk, int, S_IRUGO);
+MODULE_PARM_DESC(is_nullblk, "if this value is set to 1, the driver will be init with nullblk");
 //
 
 // temporal pointer for exit
@@ -107,15 +111,16 @@ static const struct blk_mq_ops flnvm_mq_ops = {
 
 static void flnvm_set_param(struct flnvm *flnvm){
 
-        flnvm->hw_queue_depth = hw_queue_depth;
-        flnvm->num_sqs = num_sqs;
-        flnvm->storage_gb = storage_gb;
-        flnvm->num_channel = num_channel;
-        flnvm->num_lun = num_lun;
-        flnvm->num_pln = num_pln;
-        flnvm->num_blk = num_blk;
-        flnvm->num_pg = num_pg;
-        flnvm->fpg_sz = fpg_sz;
+        flnvm->hw_queue_depth = (u32)hw_queue_depth;
+        flnvm->num_sqs = (u32)num_sqs;
+        flnvm->storage_gb = (u8)storage_gb;
+        flnvm->num_channel = (u8)num_channel;
+        flnvm->num_lun = (u8)num_lun;
+        flnvm->num_pln = (u8)num_pln;
+        flnvm->num_blk = (u16)num_blk;
+        flnvm->num_pg = (u16)num_pg;
+        flnvm->fpg_sz = (u16)fpg_sz;
+        flnvm->is_nullblk = (u8)is_nullblk;
 
         sprintf(flnvm->disk_name, "flnvm");
 }

@@ -36,6 +36,7 @@ struct flnvm {
         u16 num_blk;
         u16 num_pg;
         u16 fpg_sz;
+        u8 is_nullblk;
 //
         char disk_name[DISK_NAME_LEN];
 };

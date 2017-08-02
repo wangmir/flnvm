@@ -9,7 +9,6 @@ struct flnvm_cmd {
         struct flnvm_queue *hq;
         u64 ppa_status;
         int error;
-
 }
 
 struct flnvm_work {
@@ -30,11 +29,14 @@ struct flnvm_hil {
         u32 queue_depth;
         u32 nr_queues;
 
+        struct flnvm *flnvm;
         struct flnvm_queue *hqs;
         struct flnvm_storage *storage;
 
         spin_lock_t lock;
 };
+
+
 void flnvm_hil_end_cmd(struct flnvm_cmd *cmd);
 int flnvm_hil_handle_cmd(struct flnvm_cmd *cmd);
 
