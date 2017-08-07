@@ -7,22 +7,26 @@
 struct flnvm_cmd {
         struct list_head list;
         struct flnvm_queue *hq;
+        struct request *rq;
+        struct nvm_rq *rqd;
         u64 ppa_status;
         int error;
+
+        end_request *end_rq;
 }
 
-struct flnvm_work {
-        struct work_struct work;
-        void *cmd;
-};
 
 /* Submission queue structure for flnvm */
 struct flnvm_queue {
+        struct flnvm_hil *hil;
+
         spin_lock_t lock;
         u32 queue_number;         // submission queue number
-        struct workqueue_struct *workqueue; // implement hardware queue as idependent workqueue
-        struct flnvm_work works;
+        u32 queue_depth;
+
+        struct work_struct work;
         struct list_head cmd_list;
+        u32 num_cmd;
 };
 
 struct flnvm_hil {
@@ -33,12 +37,17 @@ struct flnvm_hil {
         struct flnvm_queue *hqs;
         struct flnvm_storage *storage;
 
+        /*
+        there are many possible solutions to emulate storage work
+        we can allocate individual single threaded workqueue for each flnvm_queue,
+        or, we also can make order workqueue and share the per-core workqueue within flnvm_queues
+        */
+        struct workqueue_struct *workqueue;
+
         spin_lock_t lock;
 };
 
-
-void flnvm_hil_end_cmd(struct flnvm_cmd *cmd);
-int flnvm_hil_handle_cmd(struct flnvm_cmd *cmd);
+int flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq);
 
 void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id);
 int flnvm_hil_get_l2p_tbl(struct flnvm *flnvm, u64 slba, u32 nlb,
@@ -47,7 +56,7 @@ int flnvm_hil_get_bb_tbl(struct flnvm *flnvm, struct ppa_addr ppa, u8 *blks);
 int flnvm_hil_set_bb_tbl(struct flnvm *flnvm, struct ppa_addr *ppas,
         int nr_ppas, int type);
 
-void flnvm_hil_init_queue(struct flnvm *flnvm, struct flnvm_queue *hq);
+void flnvm_hil_init_queue(struct flnvm_hil *hil, struct flnvm_queue *hq);
 int flnvm_hil_setup_nvm(struct flnvm *flnvm);
 void flnvm_hil_cleanup_nvm(struct flnvm *flnvm);
 

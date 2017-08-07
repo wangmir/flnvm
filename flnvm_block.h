@@ -14,6 +14,8 @@
 #define rqd_is_write(rqd) (rqd->opcode & 1)
 #define rq_to_cmd(rq) (blk_mq_rq_to_pdu(rq))
 
+typedef void (end_request)(struct request *);
+
 struct flnvm {
 
         struct request_queue *q;

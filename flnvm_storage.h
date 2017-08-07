@@ -11,7 +11,9 @@ struct flnvm_storage {
 
 };
 
-
+int flnvm_storage_program(struct ppa_addr ppa, struct page *page);
+int flnvm_storage_read(struct ppa_addr ppa, struct page *page);
+int flnvm_storage_erase(struct ppa_addr ppa, struct page *page);
 
 int flnvm_storage_setup_storage(struct flnvm_hil *hil);
 int flnvm_storage_cleanup_storage(struct flnvm_hil *hil);

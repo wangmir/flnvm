@@ -63,6 +63,10 @@ MODULE_PARM_DESC(is_nullblk, "if this value is set to 1, the driver will be init
 // temporal pointer for exit
 static struct flnvm *t_flnvm;
 
+static void flnvm_end_request(struct request *rq){
+        blk_mq_complete_request(rq);
+}
+
 static int flnvm_queue_rq(struct blk_mq_hw_ctx *hctx,
         const struct blk_mq_queue_data *bd)
 {
@@ -71,10 +75,13 @@ static int flnvm_queue_rq(struct blk_mq_hw_ctx *hctx,
 
         cmd->rq = bd->rq;
         cmd->hq = hctx->driver_data;
+        cmd->end_rq = flnvm_end_request;
 
         blk_mq_start_request(bd->rq);
 
-        ret = flnvm_hil_handle_cmd(cmd);
+        cmd->rqd = rq->end_io_data;
+
+        ret = flnvm_hil_insert_cmd_to_hq(cmd, cmd->hq);
         return ret;     // such as BLK_MQ_RQ_QUEUE_OK or BLK_MQ_RQ_QUEUE_BUSY, etc
 }
 
@@ -92,7 +99,7 @@ static int flnvm_init_hctx(struct blk_mq_hw_ctx *hctx, void *data,
         hq = &flnvm->hil->hqs[index];
         hctx->driver_data = hq;
 
-        flnvm_hil_init_queue(flnvm, nvm_q);
+        flnvm_hil_init_queue(flnvm->hil, hq);
         flnvm->hil->nr_queues++;
 
         return 0;
@@ -100,7 +107,7 @@ static int flnvm_init_hctx(struct blk_mq_hw_ctx *hctx, void *data,
 
 static void flnvm_softirq_done_fn(struct request *rq)
 {
-        flnvm_hil_end_cmd(rq_to_cmd(rq));
+        blk_mq_end_request(rq, 0);
 }
 
 static const struct blk_mq_ops flnvm_mq_ops = {
@@ -113,13 +120,31 @@ static void flnvm_set_param(struct flnvm *flnvm){
 
         flnvm->hw_queue_depth = (u32)hw_queue_depth;
         flnvm->num_sqs = (u32)num_sqs;
-        flnvm->storage_gb = (u8)storage_gb;
+
         flnvm->num_channel = (u8)num_channel;
         flnvm->num_lun = (u8)num_lun;
         flnvm->num_pln = (u8)num_pln;
-        flnvm->num_blk = (u16)num_blk;
+
         flnvm->num_pg = (u16)num_pg;
         flnvm->fpg_sz = (u16)fpg_sz;
+
+        if(storage_gb){
+                sector_t storage_size;
+
+                flnvm->storage_gb = (u8)storage_gb;
+                storage_size = storage_gb * 1024 * 1024 * 1024ULL;
+                sector_div(storage_size, fpg_sz);        // num total page
+                sector_div(storage_size, num_channel);
+                sector_div(storage_size, num_lun);
+                sector_div(storage_size, num_pln);
+                sector_div(storage_size, num_pg);       // num blocks per plane
+
+                flnvm->num_blk = (u16)storage_size;
+        }
+        else {
+                flnvm->num_blk = (u16)num_blk;
+        }
+
         flnvm->is_nullblk = (u8)is_nullblk;
 
         sprintf(flnvm->disk_name, "flnvm");
