@@ -1,24 +1,30 @@
 
 
-#inlcude <linux/lightnvm.h>
+#include <linux/lightnvm.h>
 
 #include "flnvm_hil.h"
 
 int flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq){
+
+        pr_info("flnvm: hil_insert_cmd_to_hq\n");
 
         if(hq->num_cmd == hq->queue_depth)
                 return BLK_MQ_RQ_QUEUE_BUSY;
 
         list_add_tail(&cmd->list, &hq->cmd_list);
         hq->num_cmd++;
-        queue_work(hq->hil->workqueue, hq->work);
+        queue_work(hq->hil->workqueue, &hq->work);
 
-        return BLK_MQM_RQ_QUEUE_OK;
+        return BLK_MQ_RQ_QUEUE_OK;
 }
 
-void flnvm_hil_identify(struct *flnvm, struct nvm_id *id)
+void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 {
         struct nvm_id_group *grp;
+
+        pr_info("flnvm: flnvm_hil_identify\n");
+
+        
 
         id->ver_id = 0x1;
         id->vmnt = 0;
@@ -68,9 +74,9 @@ void flnvm_hil_identify(struct *flnvm, struct nvm_id *id)
                 BUG();
         }
 
-	grp->cpar = hw_queue_depth;
+	grp->cpar = flnvm->hw_queue_depth;
 
-	return 0;
+	return;
 }
 
 int flnvm_hil_get_l2p_tbl(struct flnvm *flnvm, u64 slba, u32 nlb,
@@ -95,7 +101,7 @@ int flnvm_hil_get_bb_tbl(struct flnvm *flnvm, struct ppa_addr ppa, u8 *blks)
         return 0;
 }
 
-int flnvm_hil_set_bb_tbl(struct *flnvm, struct ppa_addr *ppas, int nr_ppas, int type)
+int flnvm_hil_set_bb_tbl(struct flnvm *flnvm, struct ppa_addr *ppas, int nr_ppas, int type)
 {
         // it must not be called at emulation
         BUG();
@@ -105,7 +111,7 @@ int flnvm_hil_set_bb_tbl(struct *flnvm, struct ppa_addr *ppas, int nr_ppas, int 
 static void flnvm_hil_end_cmd(struct flnvm_cmd *cmd)
 {
         struct request *rq = cmd->rq;
-        BUG(!rq);
+        BUG_ON(!rq);
 
         cmd->end_rq(rq);
 }
@@ -120,6 +126,8 @@ static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
         struct nvm_rq *rqd = cmd->rqd;
         struct bio *bio = rqd->bio;
 
+        pr_info("flnvm: hil_handle_cmd\n");
+
 /*
         if(bio){
                 // page_address 를 통해 page structure에서 memory 주소를 확보
@@ -130,6 +138,8 @@ static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
 }
 
 static void flnvm_hil_queue_work(struct work_struct *work){
+
+        pr_info("flnvm: hil_queue_work\n");
 
         struct flnvm_queue *hq =
                 container_of(work, struct flnvm_queue, work);
@@ -163,12 +173,16 @@ int flnvm_hil_setup_nvm(struct flnvm *flnvm)
         struct flnvm_hil *hil;
         int i, ret;
 
-        hil = kzalloc(sizeof(struct flnvm_hil), GFP_KERNEL);
-        if(!hil){
+        pr_info("flnvm: hil_setup_nvm start\n");
+
+        flnvm->hil = kzalloc(sizeof(struct flnvm_hil), GFP_KERNEL);
+        if(!flnvm->hil){
                 ret = -ENOMEM;
                 pr_err("flnvm_hil alloc failed\n");
                 goto out;
         }
+
+        hil = flnvm->hil;
 
         // alloc workqueue: it will mimic hardware controller for SSD
         hil->workqueue = create_workqueue("flnvm_hq");
@@ -192,7 +206,7 @@ int flnvm_hil_setup_nvm(struct flnvm *flnvm)
         for(i = 0; i < hil->nr_queues; i++)
                 hil->hqs->queue_number = i;
 
-        ret = flnvm_storage_setup_storage(flnvm_hil);
+        ret = flnvm_storage_setup_storage(hil);
         if(ret){
                 goto queue_free;
         }

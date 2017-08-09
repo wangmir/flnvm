@@ -2,19 +2,20 @@
 #ifndef _FLNVM_BLOCK_H
 #define _FLNVM_BLOCK_H
 
+#include <linux/fs.h>
+#include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/blkdev.h>
 #include <linux/blk-mq.h>
 #include <linux/lightnvm.h>
 
-#include "flnvm_nvm.h"
+
+#include "flnvm_hil.h"
 #include "flnvm_storage.h"
 
 #define rqd_is_write(rqd) (rqd->opcode & 1)
 #define rq_to_cmd(rq) (blk_mq_rq_to_pdu(rq))
-
-typedef void (end_request)(struct request *);
 
 struct flnvm {
 
@@ -23,10 +24,10 @@ struct flnvm {
         struct nvm_dev *ndev; // flnvm hil structure will be in ndev->private
 
         int flnvm_major;
-        struct flnvm_hil hil;
+        struct flnvm_hil *hil;
         struct kmem_cache *ppa_cache; // used for ppa_list cache on lnvm
 
-        spin_lock_t lock;
+        spinlock_t lock;
 
 // param
         u32 hw_queue_depth;

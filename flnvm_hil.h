@@ -4,6 +4,8 @@
 #include "flnvm_block.h"
 #include "flnvm_storage.h"
 
+typedef void (end_request)(struct request *);
+
 struct flnvm_cmd {
         struct list_head list;
         struct flnvm_queue *hq;
@@ -13,14 +15,12 @@ struct flnvm_cmd {
         int error;
 
         end_request *end_rq;
-}
-
+};
 
 /* Submission queue structure for flnvm */
 struct flnvm_queue {
         struct flnvm_hil *hil;
 
-        spin_lock_t lock;
         u32 queue_number;         // submission queue number
         u32 queue_depth;
 
@@ -43,8 +43,6 @@ struct flnvm_hil {
         or, we also can make order workqueue and share the per-core workqueue within flnvm_queues
         */
         struct workqueue_struct *workqueue;
-
-        spin_lock_t lock;
 };
 
 int flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq);

@@ -31,11 +31,11 @@ static int storage_gb = 8;
 module_param(storage_gb, int, S_IRUGO);
 MODULE_PARM_DESC(storage_gb, "Size of storage in GB, if this value is non-zero, then num_chks will be ignored");
 
-static int num_channel = 4;
+static int num_channel = 1;
 module_param(num_channel, int, S_IRUGO);
 MODULE_PARM_DESC(num_channel, "Number of channels per device");
 
-static int num_lun = 4;
+static int num_lun = 1;
 module_param(num_lun, int, S_IRUGO);
 MODULE_PARM_DESC(num_lun, "Number of LUNs per channel");
 
@@ -73,13 +73,15 @@ static int flnvm_queue_rq(struct blk_mq_hw_ctx *hctx,
         int ret;
         struct flnvm_cmd *cmd = rq_to_cmd(bd->rq);
 
+        pr_info("flnvm: flnvm_queue_rq\n");
+
         cmd->rq = bd->rq;
         cmd->hq = hctx->driver_data;
         cmd->end_rq = flnvm_end_request;
 
         blk_mq_start_request(bd->rq);
 
-        cmd->rqd = rq->end_io_data;
+        cmd->rqd = bd->rq->end_io_data;
 
         ret = flnvm_hil_insert_cmd_to_hq(cmd, cmd->hq);
         return ret;     // such as BLK_MQ_RQ_QUEUE_OK or BLK_MQ_RQ_QUEUE_BUSY, etc
@@ -91,6 +93,8 @@ static int flnvm_init_hctx(struct blk_mq_hw_ctx *hctx, void *data,
         struct flnvm *flnvm = data;
         struct flnvm_queue *hq;
 
+        if(!flnvm)
+                BUG();
         if(!flnvm->hil)
                 BUG();
         if(!flnvm->hil->hqs)
@@ -142,10 +146,12 @@ static void flnvm_set_param(struct flnvm *flnvm){
                 flnvm->num_blk = (u16)storage_size;
         }
         else {
-                flnvm->num_blk = (u16)num_blk;
+                flnvm->num_blk = (u16)num_block;
         }
 
         flnvm->is_nullblk = (u8)is_nullblk;
+
+        pr_info("flnvm: set_param, channel: %u, lun: %u, pln: %u\n", flnvm->num_channel, flnvm->num_lun, flnvm->num_pln);
 
         sprintf(flnvm->disk_name, "flnvm");
 }
@@ -176,9 +182,10 @@ static int flnvm_nvm_set_bb_tbl(struct nvm_dev *ndev, struct ppa_addr *ppas,
 static void flnvm_lnvm_end_io(struct request *rq, int error)
 {
         struct nvm_rq *rqd = rq->end_io_data;
+        struct flnvm_cmd *cmd = rq_to_cmd(rq);
 
-        rqd->ppa_status = rq_to_cmd(rq)->status;
-        rqd->error = rq_to_cmd(rq)->error;
+        rqd->ppa_status = cmd->ppa_status;
+        rqd->error = cmd->error;
         nvm_end_io(rqd);
 
         blk_mq_free_request(rq);
@@ -186,7 +193,7 @@ static void flnvm_lnvm_end_io(struct request *rq, int error)
 
 static int flnvm_nvm_submit_io(struct nvm_dev *ndev, struct nvm_rq *rqd)
 {
-        struct request_queue *q = dev->q;
+        struct request_queue *q = ndev->q;
         struct request *rq;
         struct bio *bio = rqd->bio;
 
@@ -208,11 +215,12 @@ static int flnvm_nvm_submit_io(struct nvm_dev *ndev, struct nvm_rq *rqd)
         return 0;
 }
 
-struct void *flnvm_nvm_create_dma_pool(struct nvm_dev *ndev, char *name)
+static void *flnvm_nvm_create_dma_pool(struct nvm_dev *ndev, char *name)
 {
+        struct flnvm *flnvm = ndev->private_data;
         mempool_t *virtmem_pool;
 
-	virtmem_pool = mempool_create_slab_pool(64, ppa_cache);
+	virtmem_pool = mempool_create_slab_pool(64, flnvm->ppa_cache);
 	if (!virtmem_pool) {
 		pr_err("flnvm: Unable to create virtual memory pool\n");
 		return NULL;
@@ -221,7 +229,7 @@ struct void *flnvm_nvm_create_dma_pool(struct nvm_dev *ndev, char *name)
 	return virtmem_pool;
 }
 
-struct void flnvm_nvm_destroy_dma_pool(void *pool)
+static void flnvm_nvm_destroy_dma_pool(void *pool)
 {
         mempool_destroy(pool);
 }
@@ -238,7 +246,7 @@ static void flnvm_nvm_dev_dma_free(void *pool, void *entry, dma_addr_t dma_handl
 }
 
 static struct nvm_dev_ops flnvm_nvm_dev_ops = {
-        .identity       = flnvm_nvm_idendify,
+        .identity       = flnvm_nvm_identify,
 
         .get_l2p_tbl    = flnvm_nvm_get_l2p_tbl,
 
@@ -255,7 +263,7 @@ static struct nvm_dev_ops flnvm_nvm_dev_ops = {
         .max_phys_sect          = 64,           // not 512 byte sector, but ppa pages
 };
 
-static int flnvm_nvm_resgister(struct flnvm *flnvm)
+static int flnvm_nvm_register(struct flnvm *flnvm)
 {
         struct nvm_dev *dev;
         int ret;
@@ -266,8 +274,8 @@ static int flnvm_nvm_resgister(struct flnvm *flnvm)
 
         dev->q = flnvm->q;
         memcpy(dev->name, flnvm->disk_name, DISK_NAME_LEN);
-        dev->ops = &flnvm_lnvm_dev_ops;
         dev->private_data = flnvm;
+        dev->ops = &flnvm_nvm_dev_ops;
 
         ret = nvm_register(dev);
         if(ret){
@@ -288,7 +296,7 @@ static void flnvm_dev_destroy(struct flnvm *flnvm)
         flnvm_nvm_unregister(flnvm);
         blk_cleanup_queue(flnvm->q);
         blk_mq_free_tag_set(&flnvm->tag_set);
-        flnvm_cleanup_nvm(flnvm);
+        flnvm_hil_cleanup_nvm(flnvm);
         kfree(flnvm);
 }
 
@@ -296,11 +304,7 @@ static int flnvm_dev_init(struct flnvm *flnvm, int major)
 {
         int ret;
 
-        flnvm = kzalloc(sizeof(struct flnvm), GFP_KERNEL);
-        if(!flnvm){
-                ret = -ENOMEM;
-                goto out;
-        }
+        pr_info("flnvm: dev init start\n");
 
         flnvm->flnvm_major = major;
         flnvm_set_param(flnvm);
@@ -310,12 +314,12 @@ static int flnvm_dev_init(struct flnvm *flnvm, int major)
         if(!flnvm->ppa_cache){
                 pr_err("flnvm: failed to create ppa_cache\n");
                 ret = -ENOMEM;
-                goto out_free_flnvm;
+                goto out;
         }
 
         spin_lock_init(&flnvm->lock);
 
-        ret = flnvm_setup_nvm(flnvm);
+        ret = flnvm_hil_setup_nvm(flnvm);
         if(ret)
                 goto setup_nvm_err;
 
@@ -345,20 +349,23 @@ static int flnvm_dev_init(struct flnvm *flnvm, int major)
         blk_queue_logical_block_size(flnvm->q, 512);    // sector size
         blk_queue_physical_block_size(flnvm->q, flnvm->fpg_sz);
 
-        flnvm_nvm_register(flnvm);
+        ret = flnvm_nvm_register(flnvm);
+        if(ret){
+                pr_err("flnvm: flnvm_nvm_register failed\n");
+                goto cleanup_blk_queue;
+        }
+        return 0;
 
-        if(!ret)
-                return 0;
-
+cleanup_blk_queue:
+        blk_cleanup_queue(flnvm->q);
 cleanup_tags:
         blk_mq_free_tag_set(&flnvm->tag_set);
 cleanup_nvm:
-        flnvm_ceanup_nvm(flnvm);
+        flnvm_hil_cleanup_nvm(flnvm);
 setup_nvm_err:
         kmem_cache_destroy(flnvm->ppa_cache);
-out_free_flnvm:
-        kfree(flnvm);
 out:
+        pr_err("flnvm: dev_init out with error\n");
         return ret;
 }
 
@@ -366,7 +373,8 @@ static int __init flnvm_init(void)
 {
         int ret = 0;
         int dev_major;
-        struct flnvm *flnvm;
+        struct flnvm *flnvm = NULL;
+        struct nvm_dev *ndev = NULL;
 
         dev_major = register_blkdev(0, "flnvm");
         if(dev_major < 0){
@@ -374,25 +382,53 @@ static int __init flnvm_init(void)
                 return dev_major;
         }
 
+        flnvm = kzalloc(sizeof(struct flnvm), GFP_KERNEL);
+        if(!flnvm){
+                ret = -ENOMEM;
+                goto out;
+        }
+
         ret = flnvm_dev_init(flnvm, dev_major);
         if(ret)
                 goto err_dev;
 
         t_flnvm = flnvm;
+        ndev = flnvm->ndev;
+        if(!t_flnvm)
+                pr_err("flnvm: t_flnvm is NULL, %x\n", flnvm);
 
+        // init complete
         pr_info("flnvm: fake lightnvm device driver loaded\n");
+        pr_info("flnvm: num_channel: %d", ndev->geo.nr_chnls);
+        pr_info("flnvm: num_lun: %d", ndev->geo.nr_luns);
+        pr_info("flnvm: luns_per_chnl: %d", ndev->geo.luns_per_chnl);
+        pr_info("flnvm: num_planes: %d", ndev->geo.nr_planes);
+        pr_info("flnvm: sec_per_pg: %d", ndev->geo.sec_per_pg);
+        pr_info("flnvm: pgs_per_blk: %d", ndev->geo.pgs_per_blk);
+        pr_info("flnvm: blks_per_lun: %d", ndev->geo.blks_per_lun);
+        pr_info("flnvm: fpg_size: %d", ndev->geo.fpg_size);
+        pr_info("flnvm: pfpg_size: %d\n", ndev->geo.pfpg_size);
+
+        pr_info ("flnvm: init fin\n");
         return 0;
 
 err_dev:
         flnvm_dev_destroy(flnvm);
         unregister_blkdev(dev_major, "flnvm");
+        kfree(flnvm);
+out:
         return ret;
 }
 
 static void __exit flnvm_exit(void)
 {
+        pr_info("flnvm: fake lightnvm device driver exit start\n");
+
+        if(!t_flnvm)
+                pr_err("flnvm: t_flnvm is NULL\n");
+
         unregister_blkdev(t_flnvm->flnvm_major, "flnvm");
-        flnvm_dev_destroy(t__flnvm);
+        flnvm_dev_destroy(t_flnvm);
 }
 
 module_init(flnvm_init);

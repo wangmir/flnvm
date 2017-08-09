@@ -81,3 +81,13 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Linux
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
