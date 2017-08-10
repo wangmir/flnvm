@@ -24,8 +24,6 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 
         pr_info("flnvm: flnvm_hil_identify\n");
 
-        
-
         id->ver_id = 0x1;
         id->vmnt = 0;
         id->cap = 0;
@@ -54,6 +52,7 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 	grp->num_pln = flnvm->num_pln;
 
 	grp->fpg_sz = flnvm->fpg_sz;
+        // csecs is minimum data unit protected by ECC, must be larger than 4096
 	grp->csecs = flnvm->fpg_sz;
 
 	grp->trdt = 25000;

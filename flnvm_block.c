@@ -408,6 +408,8 @@ static int __init flnvm_init(void)
         pr_info("flnvm: blks_per_lun: %d", ndev->geo.blks_per_lun);
         pr_info("flnvm: fpg_size: %d", ndev->geo.fpg_size);
         pr_info("flnvm: pfpg_size: %d\n", ndev->geo.pfpg_size);
+        pr_info("flnvm: sec_per_pl: %d\n", ndev->geo.sec_per_pl);
+        pr_info("flnvm: sec_size: %d\n", ndev->geo.sec_size);
 
         pr_info ("flnvm: init fin\n");
         return 0;
