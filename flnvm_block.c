@@ -27,7 +27,7 @@ static int num_sqs = 64;
 module_param(num_sqs, int, S_IRUGO);
 MODULE_PARM_DESC(num_sqs, "Number of submission queue");
 
-static int storage_gb = 8;
+static int storage_gb = 32;
 module_param(storage_gb, int, S_IRUGO);
 MODULE_PARM_DESC(storage_gb, "Size of storage in GB, if this value is non-zero, then num_chks will be ignored");
 
@@ -64,7 +64,8 @@ MODULE_PARM_DESC(is_nullblk, "if this value is set to 1, the driver will be init
 static struct flnvm *t_flnvm;
 
 static void flnvm_end_request(struct request *rq){
-        blk_mq_complete_request(rq);
+        // ar
+        blk_mq_complete_request(rq, 0);
 }
 
 static int flnvm_queue_rq(struct blk_mq_hw_ctx *hctx,
@@ -111,6 +112,7 @@ static int flnvm_init_hctx(struct blk_mq_hw_ctx *hctx, void *data,
 
 static void flnvm_softirq_done_fn(struct request *rq)
 {
+        pr_info("flnvm: softirq_done_fn\n");
         blk_mq_end_request(rq, 0);
 }
 
@@ -184,11 +186,15 @@ static void flnvm_lnvm_end_io(struct request *rq, int error)
         struct nvm_rq *rqd = rq->end_io_data;
         struct flnvm_cmd *cmd = rq_to_cmd(rq);
 
+        pr_info("flnvm: lnvm_end_io\n");
+
         rqd->ppa_status = cmd->ppa_status;
         rqd->error = cmd->error;
-        nvm_end_io(rqd);
+        if(rqd->opcode != NVM_OP_ERASE)
+                nvm_end_io(rqd, cmd->error);
 
-        blk_mq_free_request(rq);
+        blk_put_request(rq);
+        // blk_mq_free_request(rq);
 }
 
 static int flnvm_nvm_submit_io(struct nvm_dev *ndev, struct nvm_rq *rqd)
@@ -197,17 +203,21 @@ static int flnvm_nvm_submit_io(struct nvm_dev *ndev, struct nvm_rq *rqd)
         struct request *rq;
         struct bio *bio = rqd->bio;
 
-        rq = blk_mq_alloc_request(q, rqd_is_write(rqd) ? REQ_OP_DRV_OUT : REQ_OP_DRV_IN, 0);
+        rq = blk_mq_alloc_request(q, rqd_is_write(rqd) ? 1 : 0, GFP_NOIO);
         if (IS_ERR(rq))
                 return -ENOMEM;
 
-        if(bio)
-                blk_init_request_from_bio(rq, bio);
-        else {
-                rq->ioprio = IOPRIO_PRIO_VALUE(IOPRIO_CLASS_BE, IOPRIO_NORM);
-                rq->__data_len = 0;
-        }
+        // for pblk.20
+        rq->cmd_type = REQ_TYPE_DRV_PRIV;
+        rq->__sector = bio->bi_iter.bi_sector;
+        if( bio != NULL )
+		rq->ioprio = bio_prio(bio);
 
+        if(bio_has_data(bio))
+                rq->nr_phys_segments = bio_phys_segments(q, bio);
+
+        rq->__data_len = bio->bi_iter.bi_size;
+        rq->bio = rq->biotail = bio;
         rq->end_io_data = rqd;
 
         blk_execute_rq_nowait(q, NULL, rq, 0, flnvm_lnvm_end_io);
