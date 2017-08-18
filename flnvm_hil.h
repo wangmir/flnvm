@@ -45,7 +45,7 @@ struct flnvm_hil {
         struct workqueue_struct *workqueue;
 };
 
-int flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq);
+blk_status_t flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq);
 
 void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id);
 int flnvm_hil_get_l2p_tbl(struct flnvm *flnvm, u64 slba, u32 nlb,

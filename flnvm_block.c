@@ -67,10 +67,10 @@ static void flnvm_end_request(struct request *rq){
         blk_mq_complete_request(rq);
 }
 
-static int flnvm_queue_rq(struct blk_mq_hw_ctx *hctx,
+static blk_status_t flnvm_queue_rq(struct blk_mq_hw_ctx *hctx,
         const struct blk_mq_queue_data *bd)
 {
-        int ret;
+        blk_status_t ret;
         struct flnvm_cmd *cmd = rq_to_cmd(bd->rq);
 
         pr_info("flnvm: flnvm_queue_rq\n");
@@ -179,7 +179,7 @@ static int flnvm_nvm_set_bb_tbl(struct nvm_dev *ndev, struct ppa_addr *ppas,
         return flnvm_hil_set_bb_tbl(ndev->private_data, ppas, nr_ppas, type);
 }
 
-static void flnvm_lnvm_end_io(struct request *rq, int error)
+static void flnvm_lnvm_end_io(struct request *rq, blk_status_t status)
 {
         struct nvm_rq *rqd = rq->end_io_data;
         struct flnvm_cmd *cmd = rq_to_cmd(rq);

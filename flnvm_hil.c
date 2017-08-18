@@ -4,18 +4,18 @@
 
 #include "flnvm_hil.h"
 
-int flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq){
+blk_status_t flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq){
 
         pr_info("flnvm: hil_insert_cmd_to_hq\n");
 
         if(hq->num_cmd == hq->queue_depth)
-                return BLK_MQ_RQ_QUEUE_BUSY;
+                return BLK_STS_RESOURCE;
 
         list_add_tail(&cmd->list, &hq->cmd_list);
         hq->num_cmd++;
         queue_work(hq->hil->workqueue, &hq->work);
 
-        return BLK_MQ_RQ_QUEUE_OK;
+        return BLK_STS_OK;
 }
 
 void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
@@ -138,12 +138,12 @@ static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
 
 static void flnvm_hil_queue_work(struct work_struct *work){
 
-        pr_info("flnvm: hil_queue_work\n");
-
+        struct flnvm_cmd *cmd;
         struct flnvm_queue *hq =
                 container_of(work, struct flnvm_queue, work);
+                
+        pr_info("flnvm: hil_queue_work\n");
 
-        struct flnvm_cmd *cmd;
         if(!list_empty(&hq->cmd_list)){
                 cmd = list_first_entry(&hq->cmd_list, struct flnvm_cmd, list);
                 list_del(&cmd->list);
