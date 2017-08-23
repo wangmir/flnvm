@@ -6,7 +6,7 @@
 
 blk_status_t flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queue *hq){
 
-        pr_info("flnvm: hil_insert_cmd_to_hq\n");
+        // pr_info("flnvm: hil_insert_cmd_to_hq\n");
 
         if(hq->num_cmd == hq->queue_depth)
                 return BLK_STS_RESOURCE;
@@ -22,11 +22,11 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 {
         struct nvm_id_group *grp;
 
-        pr_info("flnvm: flnvm_hil_identify\n");
+        // pr_info("flnvm: flnvm_hil_identify\n");
 
         id->ver_id = 0x1;
         id->vmnt = 0;
-        id->cap = 0;
+        id->cap = 0x2;
         id->dom = 0;
 
         id->ppaf.blk_offset = 0;
@@ -52,7 +52,6 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 	grp->num_pln = flnvm->num_pln;
 
 	grp->fpg_sz = flnvm->fpg_sz;
-        // csecs is minimum data unit protected by ECC, must be larger than 4096
 	grp->csecs = flnvm->fpg_sz;
 
 	grp->trdt = 25000;
@@ -125,7 +124,7 @@ static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
         struct nvm_rq *rqd = cmd->rqd;
         struct bio *bio = rqd->bio;
 
-        pr_info("flnvm: hil_handle_cmd\n");
+        // pr_info("flnvm: hil_handle_cmd\n");
 
 /*
         if(bio){
@@ -138,21 +137,20 @@ static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
 
 static void flnvm_hil_queue_work(struct work_struct *work){
 
-        struct flnvm_cmd *cmd;
         struct flnvm_queue *hq =
                 container_of(work, struct flnvm_queue, work);
-                
-        pr_info("flnvm: hil_queue_work\n");
 
-        if(!list_empty(&hq->cmd_list)){
-                cmd = list_first_entry(&hq->cmd_list, struct flnvm_cmd, list);
+        // pr_info("flnvm: hil_queue_work\n");
+
+        struct flnvm_cmd *cmd, *tcmd;
+
+        list_for_each_entry_safe(cmd, tcmd, &hq->cmd_list, list){
                 list_del(&cmd->list);
-                hq->num_cmd--;
-        }
-        else
-                BUG(); // the list must not be empty
 
-        flnvm_hil_handle_cmd(cmd);
+                // pr_info("flnvm: hil_queue_work handle cmd, num_cmd: %d\n", hq->num_cmd);
+                hq->num_cmd--;
+                flnvm_hil_handle_cmd(cmd);
+        }
 }
 
 void flnvm_hil_init_queue(struct flnvm_hil *hil, struct flnvm_queue *hq)

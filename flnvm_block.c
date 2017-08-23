@@ -35,7 +35,7 @@ static int num_channel = 1;
 module_param(num_channel, int, S_IRUGO);
 MODULE_PARM_DESC(num_channel, "Number of channels per device");
 
-static int num_lun = 1;
+static int num_lun = 4;
 module_param(num_lun, int, S_IRUGO);
 MODULE_PARM_DESC(num_lun, "Number of LUNs per channel");
 
@@ -73,7 +73,7 @@ static blk_status_t flnvm_queue_rq(struct blk_mq_hw_ctx *hctx,
         blk_status_t ret;
         struct flnvm_cmd *cmd = rq_to_cmd(bd->rq);
 
-        pr_info("flnvm: flnvm_queue_rq\n");
+        // pr_info("flnvm: flnvm_queue_rq\n");
 
         cmd->rq = bd->rq;
         cmd->hq = hctx->driver_data;
