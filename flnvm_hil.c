@@ -26,21 +26,21 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 
         id->ver_id = 0x1;
         id->vmnt = 0;
-        id->cap = 0x2;
+        id->cap = cpu_to_le32(0x3);
         id->dom = 0;
 
-        id->ppaf.blk_offset = 0;
-	id->ppaf.blk_len = 16;
-	id->ppaf.pg_offset = 16;
-	id->ppaf.pg_len = 16;
-	id->ppaf.sect_offset = 32;
-	id->ppaf.sect_len = 8;
-	id->ppaf.pln_offset = 40;
-	id->ppaf.pln_len = 8;
-	id->ppaf.lun_offset = 48;
-	id->ppaf.lun_len = 8;
-	id->ppaf.ch_offset = 56;
-	id->ppaf.ch_len = 8;
+        id->ppaf.sect_offset = 0;
+        id->ppaf.sect_len = fls(cpu_to_le16(1) - 1); // sector per page = 1
+        id->ppaf.pln_offset = id->ppaf.sect_offset + ln_id->ppaf.sect_len;
+        id->ppaf.pln_len = fls(cpu_to_le16(flnvm->num_pln) - 1);
+        id->ppaf.pg_offset = id->ppaf.pln_offset + ln_id->ppaf.pln_len;
+        id->ppaf.pg_len = fls(cpu_to_le16(flnvm->num_pg) - 1);
+        id->ppaf.blk_offset = id->ppaf.pg_offset + ln_id->ppaf.pg_len;
+        id->ppaf.blk_len = fls(cpu_to_le16(flnvm->num_blk) - 1);
+        id->ppaf.lun_offset = id->ppaf.blk_offset + ln_id->ppaf.blk_len;
+        id->ppaf.lun_len = fls(cpu_to_le16(flnvm->num_lun) - 1);
+        id->ppaf.ch_offset = id->ppaf.lun_offset + ln_id->ppaf.lun_len;
+        id->ppaf.ch_len = fls(cpu_to_le16(flnvm->num_channel) - 1);
 
 	grp = &id->grp;
 	grp->mtype = 0;
