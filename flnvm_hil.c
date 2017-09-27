@@ -31,15 +31,15 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 
         id->ppaf.sect_offset = 0;
         id->ppaf.sect_len = fls(cpu_to_le16(1) - 1); // sector per page = 1
-        id->ppaf.pln_offset = id->ppaf.sect_offset + ln_id->ppaf.sect_len;
+        id->ppaf.pln_offset = id->ppaf.sect_offset + id->ppaf.sect_len;
         id->ppaf.pln_len = fls(cpu_to_le16(flnvm->num_pln) - 1);
-        id->ppaf.pg_offset = id->ppaf.pln_offset + ln_id->ppaf.pln_len;
+        id->ppaf.pg_offset = id->ppaf.pln_offset + id->ppaf.pln_len;
         id->ppaf.pg_len = fls(cpu_to_le16(flnvm->num_pg) - 1);
-        id->ppaf.blk_offset = id->ppaf.pg_offset + ln_id->ppaf.pg_len;
+        id->ppaf.blk_offset = id->ppaf.pg_offset + id->ppaf.pg_len;
         id->ppaf.blk_len = fls(cpu_to_le16(flnvm->num_blk) - 1);
-        id->ppaf.lun_offset = id->ppaf.blk_offset + ln_id->ppaf.blk_len;
+        id->ppaf.lun_offset = id->ppaf.blk_offset + id->ppaf.blk_len;
         id->ppaf.lun_len = fls(cpu_to_le16(flnvm->num_lun) - 1);
-        id->ppaf.ch_offset = id->ppaf.lun_offset + ln_id->ppaf.lun_len;
+        id->ppaf.ch_offset = id->ppaf.lun_offset + id->ppaf.lun_len;
         id->ppaf.ch_len = fls(cpu_to_le16(flnvm->num_channel) - 1);
 
 	grp = &id->grp;
