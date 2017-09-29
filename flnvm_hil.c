@@ -114,24 +114,60 @@ static void flnvm_hil_end_cmd(struct flnvm_cmd *cmd)
         cmd->end_rq(rq);
 }
 
-static void flnvm_hil_handle_io(struct ppa_addr ppa, u8 opcode, unsigned long *data){
+static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr ppa, u8 opcode, struct page *page){
 
+        switch(opcode){
+                case: NVM_OP_PWRITE:
+                flnvm_storage_program(hq->hil, ppa, page_address(page));
+                break;
 
+                case: NVM_OP_PREAD:
+                flnvm_storage_read(hq->hil, ppa, page_address(page));
+                break;
+
+                case: NVM_OP_ERASE:
+                flnvm_storage_erase(hq->hil, ppa);
+                break;
+
+                default:
+                pr_err("flnvm: flnvm_hil_handle_io error, invalid opcode\n");
+                break;
+        }
 }
 
 static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
 {
         struct nvm_rq *rqd = cmd->rqd;
         struct bio *bio = rqd->bio;
+        struct bio *pbio;
+        struct bio_vec bvec;
+        struct bvec_iter iter;
+        int i = 0;
 
         // pr_info("flnvm: hil_handle_cmd\n");
 
-/*
-        if(bio){
-                // page_address 를 통해 page structure에서 memory 주소를 확보
-                // kmap_atomic을 쓸 필요는 없음 (preemt disable과 interrupt disable시킴)
+        switch(rqd->opcode){
+                case: NVM_OP_PWRITE:
+                case: NVM_OP_PREAD:
+
+                pbio = rqd->bio;
+                bio_for_each_segment(bvec, pbio, iter){
+                        if(rqd->nr_ppas == 1)
+                                flnvm_hil_handle_io(cmd->hq, rqd->ppa_addr.ppa, rqd->opcode, bvec.bv_page);
+                        else
+                                flnvm_hil_handle_io(cmd->hq, rqd->ppa_list[i++].ppa, rqd->opcode, bvec.bv_page);
+                }
+                break;
+
+                case: NVM_OP_ERASE:
+                flnvm_hil_handle_io(cmd->hq, rqd->ppa_addr, rqd->opcode, NULL);
+                break;
+
+                default:
+                pr_err("flnvm: handle_cmd error, there are no available opcode\n");
+                break;
         }
-*/
+
         flnvm_hil_end_cmd(cmd);
 }
 
