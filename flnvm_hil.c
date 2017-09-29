@@ -117,15 +117,15 @@ static void flnvm_hil_end_cmd(struct flnvm_cmd *cmd)
 static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr ppa, u8 opcode, struct page *page){
 
         switch(opcode){
-                case: NVM_OP_PWRITE:
+                case NVM_OP_PWRITE:
                 flnvm_storage_program(hq->hil, ppa, page_address(page));
                 break;
 
-                case: NVM_OP_PREAD:
+                case NVM_OP_PREAD:
                 flnvm_storage_read(hq->hil, ppa, page_address(page));
                 break;
 
-                case: NVM_OP_ERASE:
+                case NVM_OP_ERASE:
                 flnvm_storage_erase(hq->hil, ppa);
                 break;
 
@@ -147,19 +147,19 @@ static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
         // pr_info("flnvm: hil_handle_cmd\n");
 
         switch(rqd->opcode){
-                case: NVM_OP_PWRITE:
-                case: NVM_OP_PREAD:
+                case NVM_OP_PWRITE:
+                case NVM_OP_PREAD:
 
                 pbio = rqd->bio;
                 bio_for_each_segment(bvec, pbio, iter){
                         if(rqd->nr_ppas == 1)
-                                flnvm_hil_handle_io(cmd->hq, rqd->ppa_addr.ppa, rqd->opcode, bvec.bv_page);
+                                flnvm_hil_handle_io(cmd->hq, rqd->ppa_addr, rqd->opcode, bvec.bv_page);
                         else
-                                flnvm_hil_handle_io(cmd->hq, rqd->ppa_list[i++].ppa, rqd->opcode, bvec.bv_page);
+                                flnvm_hil_handle_io(cmd->hq, rqd->ppa_list[i++], rqd->opcode, bvec.bv_page);
                 }
                 break;
 
-                case: NVM_OP_ERASE:
+                case NVM_OP_ERASE:
                 flnvm_hil_handle_io(cmd->hq, rqd->ppa_addr, rqd->opcode, NULL);
                 break;
 
