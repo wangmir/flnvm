@@ -270,7 +270,7 @@ void flnvm_hil_cleanup_nvm(struct flnvm *flnvm)
 {
         int i;
 
-        flush_workqueue(hil->workqueue);
+        flush_workqueue(flnvm->hil->workqueue);
 
         for(i = 0; i < flnvm->hil->nr_queues; i++){
                 flnvm_hil_cleanup_queue(&flnvm->hil->hqs[i]);
@@ -280,6 +280,6 @@ void flnvm_hil_cleanup_nvm(struct flnvm *flnvm)
                 flnvm_storage_cleanup_storage(flnvm->hil);
 
         kfree(flnvm->hil->hqs);
-        destroy_workqueue(hil->workqueue);
+        destroy_workqueue(flnvm->hil->workqueue);
         kfree(flnvm->hil);
 }

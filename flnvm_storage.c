@@ -3,27 +3,27 @@
 
 int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *page){
 
-        struct flnvm_page *page;
+        struct flnvm_page *data;
         struct flnvm_storage *storage = hil->storage;
 
         unsigned int ch = ppa.g.ch, lun = ppa.g.lun, pl = ppa.g.pl;
         unsigned int sec = ppa.g.sec, blk = ppa.g.blk, pg = ppa.g.pg;
 
-        page = storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg];
+        data = storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg];
 
-        memcpy((void *)page, page_address(page), 4096);
+        memcpy((void *)data, page_address(page), 4096);
 }
 
 int flnvm_storage_read(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *page){
-        struct flnvm_page *page;
+        struct flnvm_page *data;
         struct flnvm_storage *storage = hil->storage;
 
         unsigned int ch = ppa.g.ch, lun = ppa.g.lun, pl = ppa.g.pl;
         unsigned int sec = ppa.g.sec, blk = ppa.g.blk, pg = ppa.g.pg;
 
-        page = storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg];
+        data = storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg];
 
-        memcpy(page_address(page), (void *)page, 4096);
+        memcpy(page_address(page), (void *)data, 4096);
 }
 
 
