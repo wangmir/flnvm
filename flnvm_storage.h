@@ -5,12 +5,13 @@
 #include "flnvm_hil.h"
 
 struct flnvm_page{
-        unsigned int *data;
+        char data[4096];
 };
 
+#define FLNVM_PAGE_ORDER 8 // 256
+
 struct flnvm_block{
-        struct list_head blk_list;
-        struct flnvm_page *page;
+        struct flnvm_page page[256]; // 256 = num_pg
 };
 
 struct flnvm_pln {
@@ -28,6 +29,13 @@ struct flnvm_channel {
 struct flnvm_storage {
         struct flnvm_hil *hil;
         struct flnvm_channel *channel;
+
+        int total_blks;
+        int blk_order; // page order of the size of physical blocks
+        void *blk_ptr;
+
+        struct list_head block_list;
+        struct list_head allocated_block_list;
 };
 
 int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *page);

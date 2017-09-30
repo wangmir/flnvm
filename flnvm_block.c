@@ -47,7 +47,9 @@ static int num_block = 0;
 module_param(num_block, int, S_IRUGO);
 MODULE_PARM_DESC(num_block, "Number of blocks per plane, if you wanna give the meaning on this value, need to set the value as zero on storage_gb");
 
-static int num_pg = 128;
+// we fix the size of num_pg to simplify the memory allocation on storage
+// when using DRAM emulator storage, plz fix the code of flnvm_storage.h to change the num_pg
+static int num_pg = 256;
 module_param(num_pg, int, S_IRUGO);
 MODULE_PARM_DESC(num_pg, "Number of pages per block");
 
