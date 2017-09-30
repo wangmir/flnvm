@@ -116,6 +116,9 @@ static void flnvm_hil_end_cmd(struct flnvm_cmd *cmd)
 
 static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr ppa, u8 opcode, struct page *page){
 
+        if(hq->hil->flnvm->is_nullblk)
+                return;
+
         switch(opcode){
                 case NVM_OP_PWRITE:
                 flnvm_storage_program(hq->hil, ppa, page_address(page));
@@ -239,9 +242,11 @@ int flnvm_hil_setup_nvm(struct flnvm *flnvm)
         for(i = 0; i < hil->nr_queues; i++)
                 hil->hqs->queue_number = i;
 
-        ret = flnvm_storage_setup_storage(hil);
-        if(ret){
-                goto queue_free;
+        if(!flnvm->is_nullblk){
+                ret = flnvm_storage_setup_storage(hil);
+                if(ret){
+                        goto queue_free;
+                }
         }
 
         return 0;
@@ -265,10 +270,16 @@ void flnvm_hil_cleanup_nvm(struct flnvm *flnvm)
 {
         int i;
 
+        flush_workqueue(hil->workqueue);
+
         for(i = 0; i < flnvm->hil->nr_queues; i++){
                 flnvm_hil_cleanup_queue(&flnvm->hil->hqs[i]);
         }
 
+        if(!flnvm->is_nullblk)
+                flnvm_storage_cleanup_storage(flnvm->hil);
+
         kfree(flnvm->hil->hqs);
+        destroy_workqueue(hil->workqueue);
         kfree(flnvm->hil);
 }
