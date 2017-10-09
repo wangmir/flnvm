@@ -11,7 +11,7 @@ int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct pag
 
         data = &storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg];
 
-        copy_from_user(page_address(page), (void *)data, 4096);
+        copy_from_user((void *)data, page_address(page), 4096);
 
         // memcpy((void *)data, page_address(page), 4096);
         return 0;
