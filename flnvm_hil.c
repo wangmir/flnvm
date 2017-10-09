@@ -219,6 +219,7 @@ int flnvm_hil_setup_nvm(struct flnvm *flnvm)
         }
 
         hil = flnvm->hil;
+        hil->flnvm = flnvm;
 
         // alloc workqueue: it will mimic hardware controller for SSD
         hil->workqueue = create_workqueue("flnvm_hq");
