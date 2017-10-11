@@ -141,13 +141,17 @@ static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr ppa, u8 
 static void flnvm_hil_handle_cmd(struct flnvm_cmd *cmd)
 {
         struct nvm_rq *rqd = cmd->rqd;
-        struct bio *bio = rqd->bio;
         struct bio *pbio;
         struct bio_vec bvec;
         struct bvec_iter iter;
         int i = 0;
 
         // pr_info("flnvm: hil_handle_cmd\n");
+
+        if(cmd->hq->hil->flnvm->is_nullblk){
+                flnvm_hil_end_cmd(cmd);
+                return;
+        }
 
         switch(rqd->opcode){
                 case NVM_OP_PWRITE:
@@ -211,7 +215,7 @@ int flnvm_hil_setup_nvm(struct flnvm *flnvm)
 
         pr_info("flnvm: hil_setup_nvm start\n");
 
-        flnvm->hil = kzalloc(sizeof(struct flnvm_hil), GFP_KERNEL);
+        flnvm->hil = kmalloc(sizeof(struct flnvm_hil), GFP_KERNEL);
         if(!flnvm->hil){
                 ret = -ENOMEM;
                 pr_err("flnvm_hil alloc failed\n");
@@ -232,7 +236,7 @@ int flnvm_hil_setup_nvm(struct flnvm *flnvm)
         hil->queue_depth = flnvm->hw_queue_depth;
         hil->nr_queues = flnvm->num_sqs;
 
-        hil->hqs = kzalloc(hil->nr_queues * sizeof(struct flnvm_queue),
+        hil->hqs = kmalloc(hil->nr_queues * sizeof(struct flnvm_queue),
                 GFP_KERNEL);
         if(!hil->hqs){
                 ret = -ENOMEM;

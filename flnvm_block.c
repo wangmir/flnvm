@@ -222,7 +222,7 @@ static void *flnvm_nvm_create_dma_pool(struct nvm_dev *ndev, char *name)
         struct flnvm *flnvm = ndev->private_data;
         mempool_t *virtmem_pool;
 
-	virtmem_pool = mempool_create_slab_pool(64, flnvm->ppa_cache);
+	virtmem_pool = mempool_create_slab_pool(128, flnvm->ppa_cache);
 	if (!virtmem_pool) {
 		pr_err("flnvm: Unable to create virtual memory pool\n");
 		return NULL;
@@ -312,7 +312,7 @@ static int flnvm_dev_init(struct flnvm *flnvm, int major)
         flnvm_set_param(flnvm);
 
         // ppa_list cache. maximum number (64) of vectored I/O
-        flnvm->ppa_cache = kmem_cache_create("ppa_cache", 64 * sizeof(u64), 0, 0, NULL);
+        flnvm->ppa_cache = kmem_cache_create("ppa_cache", PAGE_SIZE, PAGE_SIZE, 0, NULL);
         if(!flnvm->ppa_cache){
                 pr_err("flnvm: failed to create ppa_cache\n");
                 ret = -ENOMEM;

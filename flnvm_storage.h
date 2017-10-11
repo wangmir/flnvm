@@ -11,7 +11,7 @@ struct flnvm_page{
 #define FLNVM_PAGE_ORDER 8 // 256
 
 struct flnvm_block{
-        struct flnvm_page page[256]; // 256 = num_pg
+        struct flnvm_page *page; // 256 = num_pg
 };
 
 struct flnvm_pln {
