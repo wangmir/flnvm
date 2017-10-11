@@ -3,7 +3,7 @@
 
 int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *page){
 
-        char *data;
+        void *data, *dst;
         struct flnvm_storage *storage = hil->storage;
 
         unsigned int ch = ppa.g.ch, lun = ppa.g.lun, pl = ppa.g.pl;
@@ -11,17 +11,22 @@ int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct pag
 
         // pr_info("flnvm: storage_program\n");
 
-        data = storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
+        data = (void *)storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
 
-        copy_from_user((void *)data, page_address(page), 4096);
+        dst = kmap_atomic(page);
 
-        // memcpy((void *)data, page_address(page), 4096);
+        pr_info("data: %llx, dst: %llx\n", data, dst);
+
+        copy_from_user((void *)data, dst, 4096);
+        // memcpy(data, dst, 4096);
+
+        kunmap_atomic(dst);
         return 0;
 }
 
 int flnvm_storage_read(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *page){
 
-        char *data;
+        void *data, *dst;
         struct flnvm_storage *storage = hil->storage;
 
         unsigned int ch = ppa.g.ch, lun = ppa.g.lun, pl = ppa.g.pl;
@@ -29,11 +34,14 @@ int flnvm_storage_read(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *
 
         // pr_info("flnvm: storage_read\n");
 
-        data = storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
+        data = (void *)storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
 
-        copy_to_user(page_address(page), (void *)data, 4096);
+        dst = kmap_atomic(page);
 
-        // memcpy(page_address(page), (void *)data, 4096);
+        copy_to_user(dst, (void *)data, 4096);
+        //memcpy(dst, data, 4096);
+
+        kunmap_atomic(dst);
         return 0;
 }
 
