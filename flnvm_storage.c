@@ -17,6 +17,11 @@ int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct pag
 
         pr_info("data: %llx, dst: %llx\n", data, dst);
 
+        if((unsigned long)data < 100){
+                pr_err("ch = %u, lun = %u, pl = %u, sec = %u, blk = %u, pg = %u\n", ch, lun, pl, sec, blk, pg);
+                BUG();
+        }
+
         copy_from_user((void *)data, dst, 4096);
         // memcpy(data, dst, 4096);
 
