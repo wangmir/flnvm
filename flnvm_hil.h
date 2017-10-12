@@ -29,6 +29,21 @@ struct flnvm_queue {
         u32 num_cmd;
 };
 
+struct flnvm_ppaf {
+	u64	ch_mask;
+	u64	lun_mask;
+	u64	pln_mask;
+	u64	blk_mask;
+	u64	pg_mask;
+	u64	sec_mask;
+	u8	ch_offset;
+	u8	lun_offset;
+	u8	pln_offset;
+	u8	blk_offset;
+	u8	pg_offset;
+	u8	sec_offset;
+};
+
 struct flnvm_hil {
         u32 queue_depth;
         u32 nr_queues;
@@ -36,6 +51,8 @@ struct flnvm_hil {
         struct flnvm *flnvm;
         struct flnvm_queue *hqs;
         struct flnvm_storage *storage;
+
+        struct flnvm_ppaf ppaf;
 
         /*
         there are many possible solutions to emulate storage work

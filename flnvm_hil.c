@@ -21,6 +21,7 @@ blk_status_t flnvm_hil_insert_cmd_to_hq(struct flnvm_cmd *cmd, struct flnvm_queu
 void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
 {
         struct nvm_id_group *grp;
+        struct flnvm_hil *hil = flnvm->hil;
 
         // pr_info("flnvm: flnvm_hil_identify\n");
 
@@ -41,6 +42,28 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
         id->ppaf.lun_len = fls(cpu_to_le16(flnvm->num_lun) - 1);
         id->ppaf.ch_offset = id->ppaf.lun_offset + id->ppaf.lun_len;
         id->ppaf.ch_len = fls(cpu_to_le16(flnvm->num_channel) - 1);
+
+        hil->ppaf.sec_offset = id->ppaf.sect_offset;
+        hil->ppaf.pln_offset = id->ppaf.pln_offset;
+        hil->ppaf.pg_offset = id->ppaf.pg_offset;
+        hil->ppaf.blk_offset = id->ppaf.blk_offset;
+        hil->ppaf.lun_offset = id->ppaf.lun_offset;
+        hil->ppaf.ch_offset = id->ppaf.ch_offset;
+
+       /* Address component selection MASK */
+        hil->ppaf.sec_mask = ((1 << id->ppaf.sect_len) - 1) <<
+                                                       hil->ppaf.sec_offset;
+        ln->ppaf.pln_mask = ((1 << id->ppaf.pln_len) - 1) <<
+                                                       hil->ppaf.pln_offset;
+        hil->ppaf.pg_mask = ((1 << id->ppaf.pg_len) - 1) <<
+                                                       hil->ppaf.pg_offset;
+        hil->ppaf.blk_mask = ((1 << id->ppaf.blk_len) - 1) <<
+                                                       hil->ppaf.blk_offset;
+        hil->ppaf.lun_mask = ((1 << id->ppaf.lun_len) -1) <<
+                                                       hil->ppaf.lun_offset;
+        hil->ppaf.ch_mask = ((1 << id->ppaf.ch_len) - 1) <<
+                                                       hil->ppaf.ch_offset;
+
 
 	grp = &id->grp;
 	grp->mtype = 0;
@@ -114,10 +137,28 @@ static void flnvm_hil_end_cmd(struct flnvm_cmd *cmd)
         cmd->end_rq(rq);
 }
 
-static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr ppa, u8 opcode, struct page *page){
+static struct ppa_addr switch_vpa_to_ppa(struct flnvm_hil *hil, u64 r){
+
+        struct ppa_addr ppa;
+        ppa.g.ch = (r & hil->ppaf.ch_mask) >> hil->ppaf.ch_offset;
+        ppa.g.lun = (r & hil->ppaf.lun_mask) >> hil->ppaf.lun_offset;
+        ppa.g.pln = (r & hil->ppaf.pln_mask) >> hil->ppaf.pln_offset;
+        ppa.g.blk = (r & hil->ppaf.blk_mask) >> hil->ppaf.blk_offset;
+        ppa.g.pg = (r & hil->ppaf.pg_mask) >> hil->ppaf.pg_offset;
+        ppa.g.sec = (r & hil->ppaf.sec_mask) >> hil->ppaf.sec_offset;
+
+        return ppa;
+}
+
+static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr vpa, u8 opcode, struct page *page){
+
+        struct ppa_addr ppa;
 
         if(hq->hil->flnvm->is_nullblk)
                 return;
+
+        // switch ppa Address
+        ppa = switch_vpa_to_ppa(hq->hil, vpa);
 
         switch(opcode){
                 case NVM_OP_PWRITE:
