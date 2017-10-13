@@ -13,14 +13,13 @@ int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct pag
         data = (void *)storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
 
         dst = kmap_atomic(page);
+        copy_from_user((void *)data, dst, 4096);
+        // memcpy(data, dst, 4096);
 
-        test = (unsigned long *)dst;
+        test = (unsigned long *)data;
 
         flnvm_debug("flnvm: storage_program, ch: %u, lun: %u, pl: %u, blk: %u, pg: %u, data: %u\n"
                 , ch, lun, pl, blk, pg, test[0]);
-
-        copy_from_user((void *)data, dst, 4096);
-        // memcpy(data, dst, 4096);
 
         kunmap_atomic(dst);
         return 0;
