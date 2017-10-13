@@ -53,7 +53,7 @@ void flnvm_hil_identify(struct flnvm *flnvm, struct nvm_id *id)
        /* Address component selection MASK */
         hil->ppaf.sec_mask = ((1 << id->ppaf.sect_len) - 1) <<
                                                        hil->ppaf.sec_offset;
-        ln->ppaf.pln_mask = ((1 << id->ppaf.pln_len) - 1) <<
+        hil->ppaf.pln_mask = ((1 << id->ppaf.pln_len) - 1) <<
                                                        hil->ppaf.pln_offset;
         hil->ppaf.pg_mask = ((1 << id->ppaf.pg_len) - 1) <<
                                                        hil->ppaf.pg_offset;
@@ -142,7 +142,7 @@ static struct ppa_addr switch_vpa_to_ppa(struct flnvm_hil *hil, u64 r){
         struct ppa_addr ppa;
         ppa.g.ch = (r & hil->ppaf.ch_mask) >> hil->ppaf.ch_offset;
         ppa.g.lun = (r & hil->ppaf.lun_mask) >> hil->ppaf.lun_offset;
-        ppa.g.pln = (r & hil->ppaf.pln_mask) >> hil->ppaf.pln_offset;
+        ppa.g.pl = (r & hil->ppaf.pln_mask) >> hil->ppaf.pln_offset;
         ppa.g.blk = (r & hil->ppaf.blk_mask) >> hil->ppaf.blk_offset;
         ppa.g.pg = (r & hil->ppaf.pg_mask) >> hil->ppaf.pg_offset;
         ppa.g.sec = (r & hil->ppaf.sec_mask) >> hil->ppaf.sec_offset;
@@ -158,7 +158,7 @@ static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr vpa, u8 
                 return;
 
         // switch ppa Address
-        ppa = switch_vpa_to_ppa(hq->hil, vpa);
+        ppa = switch_vpa_to_ppa(hq->hil, vpa.ppa);
 
         switch(opcode){
                 case NVM_OP_PWRITE:

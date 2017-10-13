@@ -9,19 +9,9 @@ int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct pag
         unsigned int ch = ppa.g.ch, lun = ppa.g.lun, pl = ppa.g.pl;
         unsigned int sec = ppa.g.sec, blk = ppa.g.blk, pg = ppa.g.pg;
 
-        // pr_info("flnvm: storage_program\n");
-
         data = (void *)storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
 
         dst = kmap_atomic(page);
-
-        pr_info("data: %llx, dst: %llx\n", data, dst);
-
-        pr_info("ch = %u, lun = %u, pl = %u, sec = %u, blk = %u, pg = %u\n", ch, lun, pl, sec, blk, pg);
-
-        if((unsigned long)data < 100){
-                BUG();
-        }
 
         copy_from_user((void *)data, dst, 4096);
         // memcpy(data, dst, 4096);
@@ -53,8 +43,6 @@ int flnvm_storage_read(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *
 
 
 int flnvm_storage_erase(struct flnvm_hil *hil, struct ppa_addr ppa){
-
-        pr_info("flnvm: storage_erase\n");
 
         return 0;
 }

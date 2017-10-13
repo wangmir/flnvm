@@ -199,13 +199,6 @@ static int flnvm_nvm_submit_io(struct nvm_dev *ndev, struct nvm_rq *rqd)
         struct request *rq;
         struct bio *bio = rqd->bio;
 
-        int i;
-
-        for(i = 0; i < rqd->nr_ppas; i++){
-                struct ppa_addr *ppa_list = (rqd->nr_ppas > 1) ? rqd->ppa_list : &rqd->ppa_addr;
-                pr_info("flnvm_block: ppas, ppa->g.blk: %u\n", ppa_list[i].g.blk);
-        }
-
         rq = blk_mq_alloc_request(q, rqd_is_write(rqd) ? REQ_OP_DRV_OUT : REQ_OP_DRV_IN, 0);
         if (IS_ERR(rq))
                 return -ENOMEM;
