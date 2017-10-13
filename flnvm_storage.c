@@ -4,6 +4,7 @@
 int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *page){
 
         void *data, *dst;
+        unsigned long *test;
         struct flnvm_storage *storage = hil->storage;
 
         unsigned int ch = ppa.g.ch, lun = ppa.g.lun, pl = ppa.g.pl;
@@ -12,6 +13,11 @@ int flnvm_storage_program(struct flnvm_hil *hil, struct ppa_addr ppa, struct pag
         data = (void *)storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
 
         dst = kmap_atomic(page);
+
+        test = (unsigned long *)dst;
+
+        flnvm_debug("flnvm: storage_program, ch: %u, lun: %u, pl: %u, blk: %u, pg: %u, data: %u\n"
+                , ch, lun, pl, blk, pg, test[0]);
 
         copy_from_user((void *)data, dst, 4096);
         // memcpy(data, dst, 4096);
@@ -24,6 +30,7 @@ int flnvm_storage_read(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *
 
         void *data, *dst;
         struct flnvm_storage *storage = hil->storage;
+        unsigned long *test;
 
         unsigned int ch = ppa.g.ch, lun = ppa.g.lun, pl = ppa.g.pl;
         unsigned int sec = ppa.g.sec, blk = ppa.g.blk, pg = ppa.g.pg;
@@ -33,6 +40,11 @@ int flnvm_storage_read(struct flnvm_hil *hil, struct ppa_addr ppa, struct page *
         data = (void *)storage->channel[ch].lun[lun].plane[pl].block[blk].page[pg].data;
 
         dst = kmap_atomic(page);
+
+        test = (unsigned long *)data;
+
+        flnvm_debug("flnvm: storage_read, ch: %u, lun: %u, pl: %u, blk: %u, pg: %u, data: %u\n"
+                , ch, lun, pl, blk, pg, test[0]);
 
         copy_to_user(dst, (void *)data, 4096);
         //memcpy(dst, data, 4096);

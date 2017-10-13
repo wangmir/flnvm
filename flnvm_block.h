@@ -14,6 +14,13 @@
 #include "flnvm_hil.h"
 #include "flnvm_storage.h"
 
+#define FLNVM_DEBUG
+#ifdef FLNVM_DEBUG
+#define flnvm_debug(fmt, a...) pr_info(fmt, ##a)
+#else
+#define flnvm_debug(fmt, a...) do{}while(0)
+#endif
+
 #define rqd_is_write(rqd) (rqd->opcode & 1)
 #define rq_to_cmd(rq) (blk_mq_rq_to_pdu(rq))
 
