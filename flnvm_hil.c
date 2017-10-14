@@ -162,11 +162,11 @@ static void flnvm_hil_handle_io(struct flnvm_queue *hq, struct ppa_addr vpa, u8 
 
         switch(opcode){
                 case NVM_OP_PWRITE:
-                flnvm_storage_program(hq->hil, ppa, page_address(page));
+                flnvm_storage_program(hq->hil, ppa, page);
                 break;
 
                 case NVM_OP_PREAD:
-                flnvm_storage_read(hq->hil, ppa, page_address(page));
+                flnvm_storage_read(hq->hil, ppa, page);
                 break;
 
                 case NVM_OP_ERASE:
