@@ -1,0 +1,9 @@
+[global]
+bs=4k
+size=40m
+filename=/dev/flnvm0
+direct=1
+numjobs=16
+
+[rand-write]
+rw=randwrite

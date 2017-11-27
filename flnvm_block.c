@@ -60,6 +60,27 @@ MODULE_PARM_DESC(fpg_sz, "Size of flash page in byte");
 static int is_nullblk = 1;
 module_param(is_nullblk, int, S_IRUGO);
 MODULE_PARM_DESC(is_nullblk, "if this value is set to 1, the driver will be init with nullblk");
+
+static unsigned int nr_rwb = 8;
+module_param(nr_rwb, int, S_IRUGO);
+MODULE_PARM_DESC(nr_rwb, "Number of RWB");
+
+static int wt_pin = 1;                                                  // 0 unpin,  1 pin
+module_param(wt_pin, int, S_IRUGO);
+MODULE_PARM_DESC(wt_pin, "pblk-writer pinning");
+
+static int user_rb_option = 1;                                          // 1 rand,  2 max (remain)
+module_param(user_rb_option, int, S_IRUGO);
+MODULE_PARM_DESC(user_rb_option, "ring buffer choice");
+
+static int gc_rb_option = 1;                                            // 1 rand,  2 max (remain)
+module_param(gc_rb_option, int, S_IRUGO);
+MODULE_PARM_DESC(gc_rb_option, "ring buffer choice of GC");
+
+static int wt_nice = 1;                                                 // 0 low,  1 high
+module_param(wt_nice, int, S_IRUGO);
+MODULE_PARM_DESC(wt_nice, "pblk-writer nice value");
+
 //
 
 // temporal pointer for exit
@@ -160,6 +181,13 @@ static void flnvm_set_param(struct flnvm *flnvm){
 
 static int flnvm_nvm_identify(struct nvm_dev *ndev , struct nvm_id *id)
 {
+// JJY
+	id->nr_rwb = nr_rwb;
+	id->user_rb_option = user_rb_option;
+	id->gc_rb_option = gc_rb_option;
+	id->wt_pin = wt_pin;
+	id->wt_nice = wt_nice;
+
         flnvm_hil_identify(ndev->private_data, id);
         return 0;
 }
